@@ -6,12 +6,12 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "dotenv-cli": "^11.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@repo/database": "workspace:*",
     "@repo/logger": "workspace:*",
-    "google-auth-library": "^10.5.0",
-    "zod": "^4.3.5"
+    "google-auth-library": "^10.9.0",
+    "zod": "^4.4.3"
   }
 }
