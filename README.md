@@ -110,9 +110,10 @@ The schema lives in `packages/database/models/` (one domain per file, re-exporte
 
 - **Users** — accounts and roles (`users`).
 - **Problems & execution** — the function-signature model: a problem declares a typed function
-  signature (`problems`, `problem_params`), with per-language starter + hidden driver code
-  (`problem_languages`) and language-agnostic JSON test cases (`test_cases`). `languages` is the
-  registry of languages run on Judge0.
+  signature (`problems`, `problem_params`), with per-language starter code (`problem_languages`)
+  and language-agnostic JSON test cases (`test_cases`). The hidden driver/harness is generated at
+  runtime from the signature by `packages/judge0` (not stored). `languages` is the registry of
+  languages run on Judge0.
 - **Submissions** — a `submissions` row per attempt, with one `submission_results` row per test
   case (holding the Judge0 token/verdict); `user_problem_status` denormalizes solved/attempted.
 - **Taxonomy** — `topics` and `companies`, each many-to-many with problems.
@@ -161,7 +162,6 @@ erDiagram
         uuid problem_id FK
         uuid language_id FK
         text starter_code
-        text driver_code
     }
     test_cases {
         uuid id PK
@@ -262,7 +262,7 @@ erDiagram
 
     problems ||--o{ problem_params : "signature args"
     problems ||--o{ problem_hints : has
-    problems ||--o{ problem_languages : "starter+driver code"
+    problems ||--o{ problem_languages : "starter code"
     problems ||--o{ test_cases : has
     problems ||--o{ problem_topics : tagged
     problems ||--o{ problem_companies : asked_by

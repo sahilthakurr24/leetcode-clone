@@ -1,0 +1,1 @@
+ALTER TABLE "problem_languages" DROP COLUMN "driver_code";

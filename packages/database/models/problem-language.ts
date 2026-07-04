@@ -8,9 +8,12 @@ import { languagesTable } from "./language";
 /**
  * Per-language code for a problem.
  * - `starterCode`: shown in the editor as the user's starting point.
- * - `driverCode`: hidden harness that reads stdin, parses the test-case args,
- *   invokes the user's function, and prints the result for Judge0 to compare.
  * - `solutionCode`: optional reference solution.
+ *
+ * The hidden driver/harness is NOT stored here — it is generated on demand from
+ * the problem's function signature by `packages/judge0` (templates + type map),
+ * so adding a language means writing one template rather than authoring driver
+ * code per problem.
  */
 export const problemLanguagesTable = pgTable(
   "problem_languages",
@@ -25,7 +28,6 @@ export const problemLanguagesTable = pgTable(
       .references(() => languagesTable.id, { onDelete: "cascade" }),
 
     starterCode: text("starter_code").notNull(),
-    driverCode: text("driver_code").notNull(),
     solutionCode: text("solution_code"),
 
     ...timestamps,
