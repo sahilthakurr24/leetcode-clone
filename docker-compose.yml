@@ -2,7 +2,7 @@ services:
   postgresdb:
     image: postgres:15
     restart: unless-stopped
-    container_name: postgresdb
+    container_name: leetcode-postgresdb
 
     environment:
       POSTGRES_USER: postgres
