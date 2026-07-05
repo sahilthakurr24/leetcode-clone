@@ -22,6 +22,13 @@
       "when": 1783182748098,
       "tag": "0002_loving_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783273297878,
+      "tag": "0003_daffy_black_bird",
+      "breakpoints": true
     }
   ]
 }
