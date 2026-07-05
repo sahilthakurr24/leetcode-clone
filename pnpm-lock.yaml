@@ -420,6 +420,9 @@ importers:
 
   packages/trpc:
     dependencies:
+      '@repo/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@repo/services':
         specifier: workspace:*
         version: link:../services

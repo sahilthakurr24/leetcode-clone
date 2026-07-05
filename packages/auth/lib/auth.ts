@@ -34,14 +34,15 @@ export const auth = betterAuth({
   },
 
   // Map better-auth's user fields to the columns the app already has, and
-  // surface the app-specific columns as additional (read-only) fields.
+  // surface the app-specific columns as additional fields. `username` is
+  // settable at sign-up; `role` stays server-controlled (never client input).
   user: {
     fields: {
       name: "fullName",
       image: "profileImageUrl",
     },
     additionalFields: {
-      username: { type: "string", required: false, input: false },
+      username: { type: "string", required: false, input: true },
       role: { type: "string", required: false, input: false },
     },
   },
