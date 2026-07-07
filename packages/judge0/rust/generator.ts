@@ -48,7 +48,7 @@ ${userCode}
 fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
-    let lines: Vec<&str> = input.split('\n').collect();
+    let lines: Vec<&str> = input.split('\\n').collect();
 ${inputDecls}
     let result = Solution::${functionName}(${argumentList});
 ${printResult}

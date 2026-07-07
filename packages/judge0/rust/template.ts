@@ -40,6 +40,16 @@ enum JsonValue {
     Arr(Vec<JsonValue>),
 }
 
+impl JsonValue {
+    // Judge0 runs Rust 1.40, which predates the matches! macro (1.42).
+    fn is_null(&self) -> bool {
+        match self {
+            JsonValue::Null => true,
+            _ => false,
+        }
+    }
+}
+
 struct Parser {
     chars: Vec<char>,
     i: usize,
@@ -174,7 +184,7 @@ type ListLink = Option<Box<ListNode>>;
 
 fn build_tree(v: &JsonValue) -> TreeLink {
     if let JsonValue::Arr(a) = v {
-        if a.is_empty() || matches!(a[0], JsonValue::Null) {
+        if a.is_empty() || a[0].is_null() {
             return None;
         }
         let root = Rc::new(RefCell::new(TreeNode::new(to_i32(&a[0]))));
@@ -184,7 +194,7 @@ fn build_tree(v: &JsonValue) -> TreeLink {
         while !queue.is_empty() && idx < a.len() {
             let node = queue.pop_front().unwrap();
             if idx < a.len() {
-                if !matches!(a[idx], JsonValue::Null) {
+                if !a[idx].is_null() {
                     let child = Rc::new(RefCell::new(TreeNode::new(to_i32(&a[idx]))));
                     node.borrow_mut().left = Some(Rc::clone(&child));
                     queue.push_back(child);
@@ -192,7 +202,7 @@ fn build_tree(v: &JsonValue) -> TreeLink {
                 idx += 1;
             }
             if idx < a.len() {
-                if !matches!(a[idx], JsonValue::Null) {
+                if !a[idx].is_null() {
                     let child = Rc::new(RefCell::new(TreeNode::new(to_i32(&a[idx]))));
                     node.borrow_mut().right = Some(Rc::clone(&child));
                     queue.push_back(child);

@@ -22,8 +22,8 @@ export function CHarnessGenerator(
   const paramDecls = params.map((p) => p.paramDecl).join(", ") + ret.extraParamDecl;
   const callArgs = params.map((p) => p.callArg).join(", ") + ret.extraCallArg;
 
-  const readStmts = parameters
-    .map((p, idx) => `    ${params[idx].readStmt(`g_lines[${idx}]`)}`)
+  const readStmts = params
+    .map((param, idx) => `    ${param.readStmt(`g_lines[${idx}]`)}`)
     .join("\n");
 
   const emitBlock = ret

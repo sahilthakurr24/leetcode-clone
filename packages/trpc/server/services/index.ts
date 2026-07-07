@@ -1,3 +1,23 @@
 import UserService from "@repo/services/user";
+import ProblemService from "@repo/services/problem";
+import LanguageService from "@repo/services/language";
+import SubmissionService from "@repo/services/submission";
+import ProgressService from "@repo/services/progress";
+import ListService from "@repo/services/list";
+import SolutionService from "@repo/services/solution";
+import CommentService from "@repo/services/comment";
+import EditorialService from "@repo/services/editorial";
+import TopicService from "@repo/services/topic";
+import CompanyService from "@repo/services/company";
 
 export const userService = new UserService();
+export const problemService = new ProblemService();
+export const languageService = new LanguageService();
+export const submissionService = new SubmissionService();
+export const progressService = new ProgressService();
+export const listService = new ListService();
+export const solutionService = new SolutionService();
+export const commentService = new CommentService();
+export const editorialService = new EditorialService();
+export const topicService = new TopicService();
+export const companyService = new CompanyService();

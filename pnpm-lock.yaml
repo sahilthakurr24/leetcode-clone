@@ -371,6 +371,18 @@ importers:
         specifier: ^8.62.1
         version: 8.62.1(eslint@10.6.0(jiti@2.7.0))(typescript@6.0.3)
 
+  packages/judge0:
+    devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
   packages/logger:
     dependencies:
       winston:
@@ -395,6 +407,9 @@ importers:
       '@repo/database':
         specifier: workspace:*
         version: link:../database
+      '@repo/judge0':
+        specifier: workspace:*
+        version: link:../judge0
       '@repo/logger':
         specifier: workspace:*
         version: link:../logger
