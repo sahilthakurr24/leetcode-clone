@@ -1,5 +1,5 @@
 import type { Generator, ProblemSignature } from "../types";
-import { goCodecFor } from "../helper/gohelper";
+import { goCodecFor, goDeclFor } from "../helper/gohelper";
 import { GO_HARNESS } from "./template";
 
 /**
@@ -17,7 +17,7 @@ export function GoHarnessGenerator(
   const { functionName, parameters, returnType } = signature;
 
   const parameterList = parameters
-    .map((p) => `${p.name} ${p.type}`)
+    .map((p) => `${p.name} ${goDeclFor(p.type)}`)
     .join(", ");
   const argumentList = parameters.map((p) => p.name).join(", ");
 
@@ -39,7 +39,7 @@ import (
 	"strings"
 )
 ${GO_HARNESS}
-func ${functionName}(${parameterList}) ${returnType} {
+func ${functionName}(${parameterList}) ${goDeclFor(returnType)} {
 ${userCode}
 }
 

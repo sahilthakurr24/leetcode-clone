@@ -1,9 +1,10 @@
 import type { TypeCodec } from "../types";
 import { UnsupportedTypeError } from "./shared";
+import { isCanonicalType, type CanonicalType } from "./canonical";
 
 /**
- * C++ helper functions: the per-type codec table and its lookup, used by the
- * C++ generator (cpp/generator.ts). Each entry says how to parse one stdin line
+ * C++ helper functions: canonical-type → declared C++ type + codec, used by the
+ * C++ generator (cpp/generator.ts). Each codec says how to parse one stdin line
  * into a value (`read`) and how to print it as canonical compact JSON (`dump`).
  * The matching C++ functions live in cpp/template.ts (CPP_HARNESS).
  */
@@ -11,46 +12,71 @@ import { UnsupportedTypeError } from "./shared";
 const jsonRead = (fn: string) => (line: string) => `${fn}(parseJson(${line}))`;
 const plainDump = (value: string) => `dump(${value})`;
 
-export const CPP_TYPE_TABLE: Record<string, TypeCodec> = {
+/** Canonical type → the C++ type written in the Solution signature. */
+const CPP_DECL: Record<CanonicalType, string> = {
+  int: "int",
+  long: "long long",
+  double: "double",
+  bool: "bool",
+  string: "string",
+  char: "char",
+
+  "int[]": "vector<int>",
+  "long[]": "vector<long long>",
+  "double[]": "vector<double>",
+  "bool[]": "vector<bool>",
+  "string[]": "vector<string>",
+  "char[]": "vector<char>",
+
+  "int[][]": "vector<vector<int>>",
+  "string[][]": "vector<vector<string>>",
+  "char[][]": "vector<vector<char>>",
+
+  TreeNode: "TreeNode*",
+  ListNode: "ListNode*",
+};
+
+const CPP_TYPE_TABLE: Record<CanonicalType, TypeCodec> = {
   int: { read: jsonRead("toInt"), dump: plainDump },
-  "long long": { read: jsonRead("toLong"), dump: plainDump },
+  long: { read: jsonRead("toLong"), dump: plainDump },
   double: { read: jsonRead("toDouble"), dump: plainDump },
   bool: { read: jsonRead("toBool"), dump: plainDump },
   string: { read: jsonRead("toStr"), dump: plainDump },
   char: { read: jsonRead("toChar"), dump: plainDump },
 
-  "vector<int>": { read: jsonRead("toVecInt"), dump: plainDump },
-  "vector<long long>": { read: jsonRead("toVecLong"), dump: plainDump },
-  "vector<double>": { read: jsonRead("toVecDouble"), dump: plainDump },
-  "vector<bool>": { read: jsonRead("toVecBool"), dump: plainDump },
-  "vector<string>": { read: jsonRead("toVecStr"), dump: plainDump },
-  "vector<char>": { read: jsonRead("toVecChar"), dump: plainDump },
+  "int[]": { read: jsonRead("toVecInt"), dump: plainDump },
+  "long[]": { read: jsonRead("toVecLong"), dump: plainDump },
+  "double[]": { read: jsonRead("toVecDouble"), dump: plainDump },
+  "bool[]": { read: jsonRead("toVecBool"), dump: plainDump },
+  "string[]": { read: jsonRead("toVecStr"), dump: plainDump },
+  "char[]": { read: jsonRead("toVecChar"), dump: plainDump },
 
-  "vector<vector<int>>": { read: jsonRead("toVecVecInt"), dump: plainDump },
-  "vector<vector<string>>": { read: jsonRead("toVecVecStr"), dump: plainDump },
-  "vector<vector<char>>": { read: jsonRead("toVecVecChar"), dump: plainDump },
+  "int[][]": { read: jsonRead("toVecVecInt"), dump: plainDump },
+  "string[][]": { read: jsonRead("toVecVecStr"), dump: plainDump },
+  "char[][]": { read: jsonRead("toVecVecChar"), dump: plainDump },
 
-  "TreeNode*": {
+  TreeNode: {
     read: jsonRead("buildTree"),
     dump: (value) => `dumpTree(${value})`,
   },
-  "ListNode*": {
+  ListNode: {
     read: jsonRead("buildList"),
     dump: (value) => `dumpList(${value})`,
   },
 };
 
-/** Collapse whitespace around `<`, `>`, `,` while keeping `long long`. */
-export function normalizeType(type: string): string {
-  return type
-    .trim()
-    .replace(/\s*([<>,])\s*/g, "$1")
-    .replace(/\s+/g, " ");
+function canon(type: string): CanonicalType {
+  const t = type.trim();
+  if (!isCanonicalType(t)) throw new UnsupportedTypeError(type);
+  return t;
 }
 
-/** Look up the codec for a C++ type, or throw if it isn't supported. */
+/** The C++ type to declare for a canonical type, or throw if unsupported. */
+export function cppDeclFor(type: string): string {
+  return CPP_DECL[canon(type)];
+}
+
+/** Look up the codec for a canonical type, or throw if it isn't supported. */
 export function codecFor(type: string): TypeCodec {
-  const codec = CPP_TYPE_TABLE[normalizeType(type)];
-  if (!codec) throw new UnsupportedTypeError(type);
-  return codec;
+  return CPP_TYPE_TABLE[canon(type)];
 }

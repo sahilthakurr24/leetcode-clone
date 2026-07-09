@@ -1,5 +1,5 @@
 import type { Generator, ProblemSignature } from "../types";
-import { javaCodecFor } from "../helper/javahelper";
+import { javaCodecFor, javaDeclFor } from "../helper/javahelper";
 import { JAVA_HARNESS } from "./template";
 
 /**
@@ -16,14 +16,14 @@ export function JavaHarnessGenerator(
   const { functionName, parameters, returnType } = signature;
 
   const parameterList = parameters
-    .map((p) => `${p.type} ${p.name}`)
+    .map((p) => `${javaDeclFor(p.type)} ${p.name}`)
     .join(", ");
   const argumentList = parameters.map((p) => p.name).join(", ");
 
   const inputDecls = parameters
     .map(
       (p, idx) =>
-        `        ${p.type} ${p.name} = ${javaCodecFor(p.type).read(`lines[${idx}]`)};`,
+        `        ${javaDeclFor(p.type)} ${p.name} = ${javaCodecFor(p.type).read(`lines[${idx}]`)};`,
     )
     .join("\n");
 
@@ -35,7 +35,7 @@ import java.io.*;
 public class Main {
 ${JAVA_HARNESS}
     static class Solution {
-        public ${returnType} ${functionName}(${parameterList}) {
+        public ${javaDeclFor(returnType)} ${functionName}(${parameterList}) {
 ${userCode}
         }
     }
@@ -43,7 +43,7 @@ ${userCode}
     public static void main(String[] args) throws IOException {
         String[] lines = readAllLines();
 ${inputDecls}
-        ${returnType} result = new Solution().${functionName}(${argumentList});
+        ${javaDeclFor(returnType)} result = new Solution().${functionName}(${argumentList});
 ${printResult}
     }
 }

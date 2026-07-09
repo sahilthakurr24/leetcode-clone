@@ -1,5 +1,5 @@
 import type { Generator, ProblemSignature } from "../types";
-import { rustCodecFor } from "../helper/rusthelper";
+import { rustCodecFor, rustDeclFor } from "../helper/rusthelper";
 import { RUST_HARNESS } from "./template";
 
 /**
@@ -18,7 +18,7 @@ export function RustHarnessGenerator(
   const { functionName, parameters, returnType } = signature;
 
   const parameterList = parameters
-    .map((p) => `${p.name}: ${p.type}`)
+    .map((p) => `${p.name}: ${rustDeclFor(p.type)}`)
     .join(", ");
   const argumentList = parameters.map((p) => p.name).join(", ");
 
@@ -40,7 +40,7 @@ ${RUST_HARNESS}
 struct Solution;
 
 impl Solution {
-    pub fn ${functionName}(${parameterList}) -> ${returnType} {
+    pub fn ${functionName}(${parameterList}) -> ${rustDeclFor(returnType)} {
 ${userCode}
     }
 }

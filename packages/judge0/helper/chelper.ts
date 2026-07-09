@@ -1,11 +1,16 @@
 import { UnsupportedTypeError } from "./shared";
 
 /**
- * C helper functions. C uses LeetCode's size-parameter convention, so a simple
- * read/dump codec (like the other languages) isn't enough: array params expand
- * into `T* name, int nameSize`, and array returns add a trailing `int*
- * returnSize`. These descriptors carry that extra shape. The matching C
- * functions live in c/template.ts (C_HARNESS).
+ * C helper functions, keyed by canonical type names (helper/canonical.ts).
+ * C uses LeetCode's size-parameter convention, so a simple read/dump codec
+ * (like the other languages) isn't enough: array params expand into
+ * `T* name, int nameSize`, and array returns add a trailing `int* returnSize`.
+ * These descriptors carry that extra shape. The matching C functions live in
+ * c/template.ts (C_HARNESS).
+ *
+ * v1 supports scalars, `string` (char*), `int[]`, and TreeNode / ListNode.
+ * Other array types and 2D arrays throw UnsupportedTypeError — a C submission
+ * on such a problem fails fast at generation time.
  */
 
 export interface CParamDesc {
@@ -29,8 +34,7 @@ export interface CReturnDesc {
 }
 
 export function cParamDesc(type: string, name: string): CParamDesc {
-  const t = type.trim().replace(/\s+/g, "");
-  switch (t) {
+  switch (type.trim()) {
     case "int":
       return { paramDecl: `int ${name}`, callArg: name, readStmt: (l) => `int ${name} = parse_int(${l});` };
     case "long":
@@ -41,17 +45,17 @@ export function cParamDesc(type: string, name: string): CParamDesc {
       return { paramDecl: `bool ${name}`, callArg: name, readStmt: (l) => `bool ${name} = parse_bool(${l});` };
     case "char":
       return { paramDecl: `char ${name}`, callArg: name, readStmt: (l) => `char ${name} = parse_char(${l});` };
-    case "char*":
+    case "string":
       return { paramDecl: `char* ${name}`, callArg: name, readStmt: (l) => `char* ${name} = parse_string(${l});` };
-    case "int*":
+    case "int[]":
       return {
         paramDecl: `int* ${name}, int ${name}Size`,
         callArg: `${name}, ${name}Size`,
         readStmt: (l) => `int ${name}Size; int* ${name} = parse_int_array(${l}, &${name}Size);`,
       };
-    case "TreeNode*":
+    case "TreeNode":
       return { paramDecl: `struct TreeNode* ${name}`, callArg: name, readStmt: (l) => `struct TreeNode* ${name} = parse_tree(${l});` };
-    case "ListNode*":
+    case "ListNode":
       return { paramDecl: `struct ListNode* ${name}`, callArg: name, readStmt: (l) => `struct ListNode* ${name} = parse_list(${l});` };
     default:
       throw new UnsupportedTypeError(type);
@@ -59,14 +63,13 @@ export function cParamDesc(type: string, name: string): CParamDesc {
 }
 
 export function cReturnDesc(type: string): CReturnDesc {
-  const t = type.trim().replace(/\s+/g, "");
   const scalar = (retType: string, printer: string): CReturnDesc => ({
     retType,
     extraParamDecl: "",
     extraCallArg: "",
     emit: (call) => `${retType} result = ${call};\n    ${printer}(result);`,
   });
-  switch (t) {
+  switch (type.trim()) {
     case "int":
       return scalar("int", "print_int");
     case "long":
@@ -77,13 +80,13 @@ export function cReturnDesc(type: string): CReturnDesc {
       return scalar("bool", "print_bool");
     case "char":
       return scalar("char", "print_char");
-    case "char*":
+    case "string":
       return scalar("char*", "print_string");
-    case "TreeNode*":
+    case "TreeNode":
       return scalar("struct TreeNode*", "print_tree");
-    case "ListNode*":
+    case "ListNode":
       return scalar("struct ListNode*", "print_list");
-    case "int*":
+    case "int[]":
       return {
         retType: "int*",
         extraParamDecl: ", int* returnSize",

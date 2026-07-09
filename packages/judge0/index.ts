@@ -13,6 +13,12 @@ export {
   serializeStdin,
   serializeExpected,
 } from "./helper/shared";
+export {
+  CANONICAL_TYPES,
+  isCanonicalType,
+  asCanonicalType,
+  type CanonicalType,
+} from "./helper/canonical";
 
 export class UnsupportedLanguageError extends Error {
   constructor(slug: string) {

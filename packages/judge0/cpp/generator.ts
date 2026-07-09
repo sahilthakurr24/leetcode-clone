@@ -1,5 +1,5 @@
 import type { Generator, ProblemSignature } from "../types";
-import { codecFor } from "../helper/cpphelper";
+import { codecFor, cppDeclFor } from "../helper/cpphelper";
 import { CPP_HARNESS } from "./template";
 
 /**
@@ -16,13 +16,13 @@ export function CppHarnessGenerator(
   const { functionName, parameters, returnType } = signature;
 
   const parameterList = parameters
-    .map((p) => `${p.type} ${p.name}`)
+    .map((p) => `${cppDeclFor(p.type)} ${p.name}`)
     .join(", ");
   const argumentList = parameters.map((p) => p.name).join(", ");
 
   const solutionClass = `class Solution {
 public:
-    ${returnType} ${functionName}(${parameterList}) {
+    ${cppDeclFor(returnType)} ${functionName}(${parameterList}) {
         ${userCode}
     }
 };`;

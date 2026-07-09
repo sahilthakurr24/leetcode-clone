@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { CANONICAL_TYPES } from "@repo/judge0";
+
+/** Language-agnostic signature types (e.g. "int[]"); see @repo/judge0. */
+const canonicalTypeSchema = z.enum(CANONICAL_TYPES);
 
 export const listProblemsInputSchema = z.object({
   limit: z.number().int().min(1).max(100).default(50),
@@ -12,17 +16,13 @@ export const getProblemBySlugInputSchema = z.object({
   slug: z.string().describe("Slug of the problem"),
 });
 
-export type GetProblemBySlugInputType = z.infer<
-  typeof getProblemBySlugInputSchema
->;
+export type GetProblemBySlugInputType = z.infer<typeof getProblemBySlugInputSchema>;
 
 export const getProblemByIdInputSchema = z.object({
   id: z.string().describe("Id of the problem"),
 });
 
-export type GetProblemByIdInputType = z.infer<
-  typeof getProblemByIdInputSchema
->;
+export type GetProblemByIdInputType = z.infer<typeof getProblemByIdInputSchema>;
 
 export const createProblemInputSchema = z.object({
   displayId: z.number().int().min(1).describe("Public problem number"),
@@ -33,12 +33,12 @@ export const createProblemInputSchema = z.object({
   difficulty: z.enum(["easy", "medium", "hard"]),
 
   functionName: z.string().min(1).max(100),
-  returnType: z.string().min(1).max(60),
+  returnType: canonicalTypeSchema,
   params: z
     .array(
       z.object({
         name: z.string().min(1).max(60),
-        type: z.string().min(1).max(60),
+        type: canonicalTypeSchema,
       }),
     )
     .min(1)
@@ -70,7 +70,7 @@ export const createProblemInputSchema = z.object({
 
   timeLimitMs: z.number().int().min(100).max(20000).optional(),
   memoryLimitKb: z.number().int().min(16000).max(1024000).optional(),
-  authorId: z.string().optional().describe("Id of the authoring user"),
+  authorId: z.string().describe("Id of the authoring user"),
   isPublished: z.boolean().default(false),
 });
 
@@ -81,9 +81,7 @@ export const setProblemPublishedInputSchema = z.object({
   isPublished: z.boolean(),
 });
 
-export type SetProblemPublishedInputType = z.infer<
-  typeof setProblemPublishedInputSchema
->;
+export type SetProblemPublishedInputType = z.infer<typeof setProblemPublishedInputSchema>;
 
 export const deleteProblemInputSchema = z.object({
   id: z.string().describe("Id of the problem"),
