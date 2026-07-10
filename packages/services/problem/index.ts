@@ -1,4 +1,4 @@
-import { db, eq, and, or, asc, inArray } from "@repo/database";
+import { db, eq, and, or, asc, inArray, ilike, isNull, sql, count } from "@repo/database";
 import {
   problemsTable,
   problemParamsTable,
@@ -6,10 +6,15 @@ import {
   testCasesTable,
   problemLanguagesTable,
   languagesTable,
+  problemTopicsTable,
+  topicsTable,
+  userProblemStatusTable,
 } from "@repo/database/schema";
 import {
   listProblemsInputSchema,
   ListProblemsInputType,
+  pickRandomProblemInputSchema,
+  PickRandomProblemInputType,
   getProblemBySlugInputSchema,
   GetProblemBySlugInputType,
   getProblemByIdInputSchema,
@@ -23,14 +28,71 @@ import {
 } from "./model";
 
 class ProblemService {
-  public async listProblems(payload: ListProblemsInputType) {
-    const { limit, offset, difficulty } =
-      await listProblemsInputSchema.parseAsync(payload);
+  /**
+   * Shared filter builder for listProblems / pickRandomProblem. Returns the
+   * WHERE conditions plus the per-user status join condition (a constant FALSE
+   * when there is no user, so the left join yields NULL status rows).
+   */
+  private buildListFilters(input: {
+    difficulty?: "easy" | "medium" | "hard";
+    search?: string;
+    topicSlug?: string;
+    status?: "solved" | "attempted" | "todo";
+    userId?: string;
+  }) {
+    const { difficulty, search, topicSlug, status, userId } = input;
 
     const conditions = [eq(problemsTable.isPublished, true)];
+
     if (difficulty) {
       conditions.push(eq(problemsTable.difficulty, difficulty));
     }
+
+    if (search) {
+      const asNumber = Number(search);
+      const titleMatch = ilike(problemsTable.title, `%${search}%`);
+      conditions.push(
+        Number.isInteger(asNumber) && asNumber > 0
+          ? or(titleMatch, eq(problemsTable.displayId, asNumber))!
+          : titleMatch,
+      );
+    }
+
+    if (topicSlug) {
+      conditions.push(
+        inArray(
+          problemsTable.id,
+          db
+            .select({ problemId: problemTopicsTable.problemId })
+            .from(problemTopicsTable)
+            .innerJoin(topicsTable, eq(problemTopicsTable.topicId, topicsTable.id))
+            .where(eq(topicsTable.slug, topicSlug)),
+        ),
+      );
+    }
+
+    const statusJoin = userId
+      ? and(
+          eq(userProblemStatusTable.problemId, problemsTable.id),
+          eq(userProblemStatusTable.userId, userId),
+        )!
+      : sql`false`;
+
+    if (userId && status) {
+      conditions.push(
+        status === "todo"
+          ? isNull(userProblemStatusTable.userId)
+          : eq(userProblemStatusTable.status, status),
+      );
+    }
+
+    return { conditions, statusJoin };
+  }
+
+  public async listProblems(payload: ListProblemsInputType) {
+    const input = await listProblemsInputSchema.parseAsync(payload);
+    const { limit, offset } = input;
+    const { conditions, statusJoin } = this.buildListFilters(input);
 
     const problems = await db
       .select({
@@ -41,14 +103,37 @@ class ProblemService {
         difficulty: problemsTable.difficulty,
         totalSubmissions: problemsTable.totalSubmissions,
         totalAccepted: problemsTable.totalAccepted,
+        status: userProblemStatusTable.status,
       })
       .from(problemsTable)
+      .leftJoin(userProblemStatusTable, statusJoin)
       .where(and(...conditions))
       .orderBy(asc(problemsTable.displayId))
       .limit(limit)
       .offset(offset);
 
-    return { problems };
+    const [countRow] = await db
+      .select({ total: count() })
+      .from(problemsTable)
+      .leftJoin(userProblemStatusTable, statusJoin)
+      .where(and(...conditions));
+
+    return { problems, total: countRow?.total ?? 0 };
+  }
+
+  public async pickRandomProblem(payload: PickRandomProblemInputType) {
+    const input = await pickRandomProblemInputSchema.parseAsync(payload);
+    const { conditions, statusJoin } = this.buildListFilters(input);
+
+    const [problem] = await db
+      .select({ slug: problemsTable.slug })
+      .from(problemsTable)
+      .leftJoin(userProblemStatusTable, statusJoin)
+      .where(and(...conditions))
+      .orderBy(sql`random()`)
+      .limit(1);
+
+    return { slug: problem?.slug ?? null };
   }
 
   public async getProblemBySlug(payload: GetProblemBySlugInputType) {

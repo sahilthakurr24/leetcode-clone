@@ -10,6 +10,17 @@ export const listProblemsInputSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   offset: z.coerce.number().int().min(0).default(0),
   difficulty: difficultySchema.optional(),
+  search: z.string().trim().min(1).max(200).optional().describe("Match title or problem number"),
+  topicSlug: z.string().optional().describe("Filter by topic slug"),
+  status: z
+    .enum(["solved", "attempted", "todo"])
+    .optional()
+    .describe("Per-user progress filter; requires a session to have any effect"),
+});
+
+export const pickRandomInputSchema = listProblemsInputSchema.omit({
+  limit: true,
+  offset: true,
 });
 
 export const listProblemsOutputSchema = z.object({
@@ -22,8 +33,14 @@ export const listProblemsOutputSchema = z.object({
       difficulty: difficultySchema,
       totalSubmissions: z.number(),
       totalAccepted: z.number(),
+      status: z.enum(["solved", "attempted"]).nullable(),
     }),
   ),
+  total: z.number().int(),
+});
+
+export const pickRandomOutputSchema = z.object({
+  slug: z.string().nullable(),
 });
 
 export const getProblemBySlugInputSchema = z.object({

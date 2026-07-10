@@ -15,3 +15,4 @@ export * from "./models/progress";
 export * from "./models/editorial";
 export * from "./models/solution";
 export * from "./models/comment";
+export * from "./models/attendance";

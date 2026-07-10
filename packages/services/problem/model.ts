@@ -8,9 +8,23 @@ export const listProblemsInputSchema = z.object({
   limit: z.number().int().min(1).max(100).default(50),
   offset: z.number().int().min(0).default(0),
   difficulty: z.enum(["easy", "medium", "hard"]).optional(),
+  search: z.string().trim().min(1).max(200).optional().describe("Match title or problem number"),
+  topicSlug: z.string().optional().describe("Filter by topic slug"),
+  status: z
+    .enum(["solved", "attempted", "todo"])
+    .optional()
+    .describe("Per-user progress filter; ignored when userId is absent"),
+  userId: z.string().optional().describe("Injected from the session, never client input"),
 });
 
 export type ListProblemsInputType = z.infer<typeof listProblemsInputSchema>;
+
+export const pickRandomProblemInputSchema = listProblemsInputSchema.omit({
+  limit: true,
+  offset: true,
+});
+
+export type PickRandomProblemInputType = z.infer<typeof pickRandomProblemInputSchema>;
 
 export const getProblemBySlugInputSchema = z.object({
   slug: z.string().describe("Slug of the problem"),

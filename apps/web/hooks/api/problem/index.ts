@@ -4,7 +4,10 @@ import type { RouterInputs } from "@repo/trpc/client";
 import { trpc } from "~/trpc/client";
 
 export function useProblems(input?: RouterInputs["problem"]["listProblems"]) {
-  return trpc.problem.listProblems.useQuery(input ?? {});
+  return trpc.problem.listProblems.useQuery(input ?? {}, {
+    // Keep the previous page visible while the next one loads.
+    placeholderData: (previous) => previous,
+  });
 }
 
 export function useProblemBySlug(slug: string | undefined) {

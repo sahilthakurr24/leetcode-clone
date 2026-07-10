@@ -18,9 +18,13 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
 });
 
 if (env.NODE_ENV !== "prod") {
+  // Reflect the request origin (not "*") and allow credentials — the web client
+  // sends cookies via `credentials: "include"`, and browsers reject a wildcard
+  // origin on credentialed requests.
   app.use(
     cors({
-      origin: "*",
+      origin: true,
+      credentials: true,
     }),
   );
 }

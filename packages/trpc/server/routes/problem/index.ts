@@ -5,6 +5,8 @@ import { generatePath } from "../../utils/path-generator";
 import {
   listProblemsInputSchema,
   listProblemsOutputSchema,
+  pickRandomInputSchema,
+  pickRandomOutputSchema,
   getProblemBySlugInputSchema,
   getProblemByIdInputSchema,
   createProblemInputSchema,
@@ -22,7 +24,17 @@ export const problemRouter = router({
     .meta({ openapi: { method: "GET", path: getPath("list"), tags: TAGS } })
     .input(listProblemsInputSchema)
     .output(listProblemsOutputSchema)
-    .query(({ input }) => problemService.listProblems(input)),
+    .query(({ ctx, input }) =>
+      problemService.listProblems({ ...input, userId: ctx.user?.id }),
+    ),
+
+  pickRandom: publicProcedure
+    .meta({ openapi: { method: "GET", path: getPath("pick-random"), tags: TAGS } })
+    .input(pickRandomInputSchema)
+    .output(pickRandomOutputSchema)
+    .query(({ ctx, input }) =>
+      problemService.pickRandomProblem({ ...input, userId: ctx.user?.id }),
+    ),
 
   getProblemBySlug: publicProcedure
     .meta({ openapi: { method: "GET", path: getPath("by-slug/{slug}"), tags: TAGS } })

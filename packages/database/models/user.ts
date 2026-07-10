@@ -16,6 +16,7 @@ import { commentsTable } from "./comment";
 import { problemListsTable, favoritesTable } from "./list";
 import { sessionsTable } from "./session";
 import { accountsTable } from "./account";
+import { attendanceTable } from "./attendance";
 
 export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
 
@@ -44,6 +45,7 @@ export const usersRelations = relations(usersTable, ({ many }) => ({
   favorites: many(favoritesTable),
   sessions: many(sessionsTable),
   accounts: many(accountsTable),
+  attendance: many(attendanceTable),
 }));
 
 export type SelectUser = typeof usersTable.$inferSelect;

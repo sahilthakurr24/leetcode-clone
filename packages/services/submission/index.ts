@@ -20,6 +20,7 @@ import {
   type Judge0BatchEntry,
   type Judge0Result,
 } from "../clients/judge0";
+import AttendanceService from "../attendance";
 import {
   createSubmissionInputSchema,
   CreateSubmissionInputType,
@@ -32,6 +33,8 @@ import {
 } from "./model";
 
 class SubmissionService {
+  private readonly attendanceService = new AttendanceService();
+
   /**
    * Shared setup for judged and sample runs: load the problem, its signature,
    * the language, and the test cases, then generate the full source and one
@@ -225,6 +228,13 @@ class SubmissionService {
       .where(eq(problemsTable.id, problem.id));
 
     await this.upsertProgress(userId, problem.id, submission.id, overallStatus);
+
+    // Record today's solve activity for the streak/attendance calendar. Only
+    // marked on an accepted run — onConflictDoNothing means the first accepted
+    // submission of the day wins, and re-solving is a harmless no-op.
+    if (overallStatus === "accepted") {
+      await this.attendanceService.markAttendance({ userId, solved: true });
+    }
 
     return { submission: updated, results: mapped };
   }

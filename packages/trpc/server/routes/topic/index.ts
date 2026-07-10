@@ -16,6 +16,7 @@ export const listTopicsOutputSchema = z.object({
       slug: z.string(),
       createdAt: z.date(),
       updatedAt: z.date(),
+      problemCount: z.number().int(),
     }),
   ),
 });

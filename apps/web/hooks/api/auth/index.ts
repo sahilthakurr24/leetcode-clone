@@ -3,9 +3,9 @@
 import type { RouterInputs } from "@repo/trpc/client";
 import { trpc } from "~/trpc/client";
 
-/** Current session user (full private row). */
+/** Current session user (full private row); errors with UNAUTHORIZED when signed out. */
 export function useMe() {
-  return trpc.auth.me.useQuery();
+  return trpc.auth.me.useQuery(undefined, { retry: false });
 }
 
 export function useUserByUsername(username: string | undefined) {
