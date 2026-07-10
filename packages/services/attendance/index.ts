@@ -1,5 +1,10 @@
-import db from "@repo/database";
-import { markAttendanceSchema, MarkAttendanceType } from "./model";
+import db, { eq } from "@repo/database";
+import {
+  markAttendanceSchema,
+  MarkAttendanceType,
+  getUserAttendanceSchema,
+  GetUserAttendanceType,
+} from "./model";
 import { attendanceTable } from "@repo/database/schema";
 
 class AttendanceService {
@@ -26,6 +31,20 @@ class AttendanceService {
     return {
       id: result?.id,
     };
+  }
+
+  public async getUserAttendance(payload: GetUserAttendanceType) {
+    const { userId } = await getUserAttendanceSchema.parseAsync(payload);
+
+    const attendance = await db
+      .select({
+        attendanceDate: attendanceTable.attendanceDate,
+        solved: attendanceTable.solved,
+      })
+      .from(attendanceTable)
+      .where(eq(attendanceTable.userId, userId));
+
+    return { attendance };
   }
 }
 

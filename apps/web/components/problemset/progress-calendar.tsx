@@ -1,36 +1,46 @@
 "use client";
 
 import { useMemo } from "react";
-import { Flame } from "lucide-react";
+import { Flame, Lock } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { useMyProgress } from "~/hooks/api/progress";
+import { useMyAttendance } from "~/hooks/api/attendance";
 import { cn } from "~/lib/utils";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
+/** Local YYYY-MM-DD for a given day of the current month (matches DB date strings). */
+function dateKey(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 /**
- * Small month-grid widget for the sidebar. Days on which the user solved a
- * problem get a highlight; today gets a ring.
+ * Month-grid attendance widget backed by the `attendance` table. Future days are
+ * locked; past days (and today) are green when a problem was solved that day and
+ * red otherwise. Neutral for signed-out users (no attendance to show).
  */
 export function ProgressCalendar() {
-  const { data } = useMyProgress();
+  const { data, isError } = useMyAttendance();
+  const showActivity = !!data && !isError;
 
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
+  const todayDate = today.getDate();
 
   const solvedDays = useMemo(() => {
-    const days = new Set<number>();
-    for (const entry of data?.progress ?? []) {
-      if (!entry.solvedAt) continue;
-      const solved = new Date(entry.solvedAt);
-      if (solved.getFullYear() === year && solved.getMonth() === month) {
-        days.add(solved.getDate());
-      }
+    const days = new Set<string>();
+    for (const row of data?.attendance ?? []) {
+      if (row.solved) days.add(row.attendanceDate);
     }
     return days;
-  }, [data, year, month]);
+  }, [data]);
+
+  const monthPrefix = dateKey(year, month, 1).slice(0, 7); // "YYYY-MM"
+  const activeCount = useMemo(
+    () => [...solvedDays].filter((d) => d.startsWith(monthPrefix)).length,
+    [solvedDays, monthPrefix],
+  );
 
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -48,34 +58,59 @@ export function ProgressCalendar() {
           <span>{monthLabel}</span>
           <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
             <Flame className="size-3.5 text-orange-400" />
-            {solvedDays.size} active {solvedDays.size === 1 ? "day" : "days"}
+            {activeCount} active {activeCount === 1 ? "day" : "days"}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-4">
+      <CardContent className="space-y-3 px-4">
         <div className="grid grid-cols-7 gap-1 text-center text-xs">
           {WEEKDAY_LABELS.map((label, i) => (
             <span key={`${label}-${i}`} className="text-muted-foreground">
               {label}
             </span>
           ))}
-          {cells.map((day, i) =>
-            day === null ? (
-              <span key={`pad-${i}`} />
-            ) : (
+          {cells.map((day, i) => {
+            if (day === null) return <span key={`pad-${i}`} />;
+
+            const isFuture = day > todayDate;
+            const isToday = day === todayDate;
+            const solved = solvedDays.has(dateKey(year, month, day));
+
+            return (
               <span
                 key={day}
+                title={isFuture ? "Locked" : undefined}
                 className={cn(
                   "flex size-7 items-center justify-center rounded-md",
-                  solvedDays.has(day) && "bg-emerald-500/20 font-medium text-emerald-400",
-                  day === today.getDate() && "ring-1 ring-primary",
+                  isFuture && "cursor-not-allowed text-muted-foreground/40",
+                  !isFuture &&
+                    showActivity &&
+                    solved &&
+                    "bg-emerald-500/25 font-medium text-emerald-300",
+                  !isFuture && showActivity && !solved && "bg-red-500/15 text-red-400",
+                  !isFuture && !showActivity && "text-foreground",
+                  isToday && "ring-1 ring-primary",
                 )}
               >
-                {day}
+                {isFuture ? <Lock className="size-3 opacity-50" /> : day}
               </span>
-            ),
-          )}
+            );
+          })}
         </div>
+
+        {showActivity && (
+          <div className="flex items-center gap-3 text-[0.7rem] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="size-2.5 rounded-sm bg-emerald-500/60" /> Solved
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="size-2.5 rounded-sm bg-red-500/50" /> Missed
+            </span>
+            <span className="flex items-center gap-1">
+              <Lock className="size-2.5" /> Locked
+            </span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -9,6 +9,7 @@ import CommentService from "@repo/services/comment";
 import EditorialService from "@repo/services/editorial";
 import TopicService from "@repo/services/topic";
 import CompanyService from "@repo/services/company";
+import AttendanceService from "@repo/services/attendance";
 
 
 export const userService = new UserService();
@@ -22,4 +23,5 @@ export const commentService = new CommentService();
 export const editorialService = new EditorialService();
 export const topicService = new TopicService();
 export const companyService = new CompanyService();
+export const attendanceService = new AttendanceService();
 

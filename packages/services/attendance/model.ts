@@ -7,3 +7,9 @@ export const markAttendanceSchema = z.object({
 
 
 export type MarkAttendanceType = z.infer<typeof markAttendanceSchema>;
+
+export const getUserAttendanceSchema = z.object({
+  userId: z.string().describe("Id of the user"),
+});
+
+export type GetUserAttendanceType = z.infer<typeof getUserAttendanceSchema>;
