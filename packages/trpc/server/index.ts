@@ -12,7 +12,7 @@ import { commentRouter } from "./routes/comment";
 import { editorialRouter } from "./routes/editorial";
 import { topicRouter } from "./routes/topic";
 import { companyRouter } from "./routes/company";
-import { userRouter } from "./routes/user";
+
 
 export const serverRouter = router({
   health: healthRouter,
@@ -27,7 +27,6 @@ export const serverRouter = router({
   editorial: editorialRouter,
   topic: topicRouter,
   company: companyRouter,
-  user: userRouter,
 });
 
 export { createContext } from "./context";
