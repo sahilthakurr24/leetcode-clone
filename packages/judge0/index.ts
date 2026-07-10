@@ -43,3 +43,16 @@ export function getGenerator(slug: string): Generator {
   if (!generator) throw new UnsupportedLanguageError(slug);
   return generator;
 }
+
+/** Slugs that have a code generator (and therefore can be judged). */
+export function isSupportedLanguage(slug: string): boolean {
+  return slug in GENERATORS;
+}
+
+/** Build the editor starter skeleton for a language + problem signature. */
+export function generateStarterCode(
+  slug: string,
+  signature: import("./types").ProblemSignature,
+): string {
+  return getGenerator(slug).generateStarter(signature);
+}

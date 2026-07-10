@@ -4,8 +4,8 @@ import { JS_HARNESS } from "./template";
 
 /**
  * Assemble the full runnable JavaScript source for a submission:
- *   harness + `function fn(params) { userCode }` + a driver that reads the args
- *   from stdin, calls the function, and prints the canonical result.
+ *   harness + the user's complete function (verbatim) + a driver that reads
+ *   the args from stdin, calls the function, and prints the canonical result.
  */
 export function JsHarnessGenerator(
   signature: ProblemSignature,
@@ -25,9 +25,7 @@ export function JsHarnessGenerator(
   const printResult = `process.stdout.write(${jsCodecFor(returnType).dump("result")});`;
 
   return `${JS_HARNESS}
-function ${functionName}(${paramNames}) {
 ${userCode}
-}
 
 const lines = readAllLines();
 ${inputDecls}
@@ -36,6 +34,24 @@ ${printResult}
 `;
 }
 
+function JsStarterGenerator(signature: ProblemSignature): string {
+  const { functionName, parameters, returnType } = signature;
+
+  const jsdocParams = parameters
+    .map((p) => ` * @param {${p.type}} ${p.name}`)
+    .join("\n");
+  const paramNames = parameters.map((p) => p.name).join(", ");
+
+  return `/**
+${jsdocParams}
+ * @return {${returnType}}
+ */
+var ${functionName} = function(${paramNames}) {
+
+};`;
+}
+
 export const jsGenerator: Generator = {
   generateSource: JsHarnessGenerator,
+  generateStarter: JsStarterGenerator,
 };

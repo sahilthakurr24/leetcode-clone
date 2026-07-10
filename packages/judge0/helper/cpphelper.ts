@@ -76,6 +76,16 @@ export function cppDeclFor(type: string): string {
   return CPP_DECL[canon(type)];
 }
 
+/**
+ * Parameter type as written in the starter skeleton: containers and strings go
+ * by reference (`vector<int>&`), scalars and node pointers by value.
+ */
+export function cppStarterParamFor(type: string): string {
+  const decl = CPP_DECL[canon(type)];
+  const byRef = decl.startsWith("vector<") || decl === "string";
+  return byRef ? `${decl}&` : decl;
+}
+
 /** Look up the codec for a canonical type, or throw if it isn't supported. */
 export function codecFor(type: string): TypeCodec {
   return CPP_TYPE_TABLE[canon(type)];

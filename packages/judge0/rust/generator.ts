@@ -4,12 +4,9 @@ import { RUST_HARNESS } from "./template";
 
 /**
  * Assemble the full runnable Rust source for a submission:
- *   harness + `impl Solution { pub fn fn(params) -> ret { userCode } }` + a
- *   `main()` that reads the args from stdin, calls the function, and prints the
- *   canonical result.
- *
- * NOTE: not verified against a local Rust toolchain (none installed) — validate
- * on the Judge0 VM.
+ *   harness + `struct Solution;` + the user's complete `impl Solution` block
+ *   (verbatim) + a `main()` that reads the args from stdin, calls the function,
+ *   and prints the canonical result.
  */
 export function RustHarnessGenerator(
   signature: ProblemSignature,
@@ -17,9 +14,6 @@ export function RustHarnessGenerator(
 ): string {
   const { functionName, parameters, returnType } = signature;
 
-  const parameterList = parameters
-    .map((p) => `${p.name}: ${rustDeclFor(p.type)}`)
-    .join(", ");
   const argumentList = parameters.map((p) => p.name).join(", ");
 
   const inputDecls = parameters
@@ -39,11 +33,7 @@ use std::collections::VecDeque;
 ${RUST_HARNESS}
 struct Solution;
 
-impl Solution {
-    pub fn ${functionName}(${parameterList}) -> ${rustDeclFor(returnType)} {
 ${userCode}
-    }
-}
 
 fn main() {
     let mut input = String::new();
@@ -56,6 +46,21 @@ ${printResult}
 `;
 }
 
+function RustStarterGenerator(signature: ProblemSignature): string {
+  const { functionName, parameters, returnType } = signature;
+
+  const paramList = parameters
+    .map((p) => `${p.name}: ${rustDeclFor(p.type)}`)
+    .join(", ");
+
+  return `impl Solution {
+    pub fn ${functionName}(${paramList}) -> ${rustDeclFor(returnType)} {
+
+    }
+}`;
+}
+
 export const rustGenerator: Generator = {
   generateSource: RustHarnessGenerator,
+  generateStarter: RustStarterGenerator,
 };

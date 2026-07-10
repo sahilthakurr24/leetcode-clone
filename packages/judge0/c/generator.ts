@@ -3,12 +3,13 @@ import { cParamDesc, cReturnDesc } from "../helper/chelper";
 import { C_HARNESS } from "./template";
 
 /**
- * Assemble the full runnable C source for a submission. Follows LeetCode's C
- * convention: array params carry a size, array returns add a trailing
- * `int* returnSize`.
+ * Assemble the full runnable C source for a submission. Follows the
+ * size-parameter convention: array params carry a size, array returns add a
+ * trailing `int* returnSize`. The user's complete function is emitted verbatim
+ * between the harness and `main()`.
  *
  * v1 supports scalars, strings (char*), int arrays, and TreeNode / ListNode
- * pointers. 2D arrays throw UnsupportedTypeError. Verified locally with clang.
+ * pointers. 2D arrays throw UnsupportedTypeError.
  */
 export function CHarnessGenerator(
   signature: ProblemSignature,
@@ -19,7 +20,6 @@ export function CHarnessGenerator(
   const params = parameters.map((p) => cParamDesc(p.type, p.name));
   const ret = cReturnDesc(returnType);
 
-  const paramDecls = params.map((p) => p.paramDecl).join(", ") + ret.extraParamDecl;
   const callArgs = params.map((p) => p.callArg).join(", ") + ret.extraCallArg;
 
   const readStmts = params
@@ -33,9 +33,7 @@ export function CHarnessGenerator(
     .join("\n");
 
   return `${C_HARNESS}
-${ret.retType} ${functionName}(${paramDecls}) {
 ${userCode}
-}
 
 int main(void) {
     read_all_lines();
@@ -46,6 +44,19 @@ ${emitBlock}
 `;
 }
 
+function CStarterGenerator(signature: ProblemSignature): string {
+  const { functionName, parameters, returnType } = signature;
+
+  const params = parameters.map((p) => cParamDesc(p.type, p.name));
+  const ret = cReturnDesc(returnType);
+  const paramDecls = params.map((p) => p.paramDecl).join(", ") + ret.extraParamDecl;
+
+  return `${ret.retType} ${functionName}(${paramDecls}) {
+
+}`;
+}
+
 export const cGenerator: Generator = {
   generateSource: CHarnessGenerator,
+  generateStarter: CStarterGenerator,
 };

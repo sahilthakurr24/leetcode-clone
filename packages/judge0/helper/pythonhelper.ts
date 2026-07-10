@@ -45,8 +45,41 @@ const PYTHON_TYPE_TABLE: Record<CanonicalType, TypeCodec> = {
   ListNode: listCodec,
 };
 
-export function pythonCodecFor(type: string): TypeCodec {
+/** Canonical type → the Python type hint written in the starter signature. */
+const PY_DECL: Record<CanonicalType, string> = {
+  int: "int",
+  long: "int",
+  double: "float",
+  bool: "bool",
+  string: "str",
+  char: "str",
+
+  "int[]": "List[int]",
+  "long[]": "List[int]",
+  "double[]": "List[float]",
+  "bool[]": "List[bool]",
+  "string[]": "List[str]",
+  "char[]": "List[str]",
+
+  "int[][]": "List[List[int]]",
+  "string[][]": "List[List[str]]",
+  "char[][]": "List[List[str]]",
+
+  TreeNode: "Optional[TreeNode]",
+  ListNode: "Optional[ListNode]",
+};
+
+function canon(type: string): CanonicalType {
   const t = type.trim();
   if (!isCanonicalType(t)) throw new UnsupportedTypeError(type);
-  return PYTHON_TYPE_TABLE[t];
+  return t;
+}
+
+/** The Python type hint for a canonical type, or throw if unsupported. */
+export function pythonDeclFor(type: string): string {
+  return PY_DECL[canon(type)];
+}
+
+export function pythonCodecFor(type: string): TypeCodec {
+  return PYTHON_TYPE_TABLE[canon(type)];
 }

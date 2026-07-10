@@ -6,6 +6,7 @@
 export const PYTHON_HARNESS = String.raw`
 import sys, json
 from collections import deque
+from typing import List, Optional, Dict
 
 class TreeNode:
     def __init__(self, val=0, left=None, right=None):

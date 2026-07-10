@@ -1,13 +1,12 @@
 import type { Generator, ProblemSignature } from "../types";
-import { codecFor, cppDeclFor } from "../helper/cpphelper";
+import { codecFor, cppDeclFor, cppStarterParamFor } from "../helper/cpphelper";
 import { CPP_HARNESS } from "./template";
 
 /**
  * Assemble the full, compilable C++ source for a submission:
- *   includes + harness + `Solution` class (user body) + `main()` that reads the
- *   args from stdin, calls the method, and prints the canonical result.
- * Per-type read/dump logic lives in helper/cpphelper.ts; the C++ runtime it
- * calls lives in ./template.ts.
+ *   includes + harness + the user's complete `Solution` class (verbatim) +
+ *   `main()` that reads the args from stdin, calls the method, and prints the
+ *   canonical result. Per-type read/dump logic lives in helper/cpphelper.ts.
  */
 export function CppHarnessGenerator(
   signature: ProblemSignature,
@@ -15,17 +14,7 @@ export function CppHarnessGenerator(
 ): string {
   const { functionName, parameters, returnType } = signature;
 
-  const parameterList = parameters
-    .map((p) => `${cppDeclFor(p.type)} ${p.name}`)
-    .join(", ");
   const argumentList = parameters.map((p) => p.name).join(", ");
-
-  const solutionClass = `class Solution {
-public:
-    ${cppDeclFor(returnType)} ${functionName}(${parameterList}) {
-        ${userCode}
-    }
-};`;
 
   const inputDecls = parameters
     .map(
@@ -39,7 +28,7 @@ public:
   return `#include <bits/stdc++.h>
 using namespace std;
 ${CPP_HARNESS}
-${solutionClass}
+${userCode}
 
 int main() {
     std::vector<std::string> lines = readAllLines();
@@ -51,6 +40,22 @@ ${printResult}
 `;
 }
 
+function CppStarterGenerator(signature: ProblemSignature): string {
+  const { functionName, parameters, returnType } = signature;
+
+  const paramList = parameters
+    .map((p) => `${cppStarterParamFor(p.type)} ${p.name}`)
+    .join(", ");
+
+  return `class Solution {
+public:
+    ${cppDeclFor(returnType)} ${functionName}(${paramList}) {
+
+    }
+};`;
+}
+
 export const cppGenerator: Generator = {
   generateSource: CppHarnessGenerator,
+  generateStarter: CppStarterGenerator,
 };

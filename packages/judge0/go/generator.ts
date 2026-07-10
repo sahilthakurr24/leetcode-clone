@@ -4,11 +4,8 @@ import { GO_HARNESS } from "./template";
 
 /**
  * Assemble the full runnable Go source for a submission:
- *   package + imports + harness + `func fn(params) ret { userCode }` + `main()`
- *   that reads the args from stdin, calls the function, and prints the result.
- *
- * NOTE: not verified against a local Go toolchain (none installed) — validate
- * on the Judge0 VM.
+ *   package + imports + harness + the user's complete function (verbatim) +
+ *   `main()` that reads the args from stdin, calls it, and prints the result.
  */
 export function GoHarnessGenerator(
   signature: ProblemSignature,
@@ -16,9 +13,6 @@ export function GoHarnessGenerator(
 ): string {
   const { functionName, parameters, returnType } = signature;
 
-  const parameterList = parameters
-    .map((p) => `${p.name} ${goDeclFor(p.type)}`)
-    .join(", ");
   const argumentList = parameters.map((p) => p.name).join(", ");
 
   const inputDecls = parameters
@@ -39,9 +33,7 @@ import (
 	"strings"
 )
 ${GO_HARNESS}
-func ${functionName}(${parameterList}) ${goDeclFor(returnType)} {
 ${userCode}
-}
 
 func main() {
 	lines := readAllLines()
@@ -52,6 +44,19 @@ ${printResult}
 `;
 }
 
+function GoStarterGenerator(signature: ProblemSignature): string {
+  const { functionName, parameters, returnType } = signature;
+
+  const paramList = parameters
+    .map((p) => `${p.name} ${goDeclFor(p.type)}`)
+    .join(", ");
+
+  return `func ${functionName}(${paramList}) ${goDeclFor(returnType)} {
+
+}`;
+}
+
 export const goGenerator: Generator = {
   generateSource: GoHarnessGenerator,
+  generateStarter: GoStarterGenerator,
 };

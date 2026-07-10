@@ -18,8 +18,13 @@ export interface ProblemSignature {
 }
 
 export interface Generator {
-  /** Assemble the full, compilable source = harness + user body + `main()`. */
+  /**
+   * Assemble the full, compilable source = harness + the user's complete
+   * function/class (verbatim) + the driver `main()` that calls it.
+   */
   generateSource(signature: ProblemSignature, userCode: string): string;
+  /** Build the editor starter skeleton for this signature, e.g. an empty `class Solution` method. */
+  generateStarter(signature: ProblemSignature): string;
 }
 
 /**

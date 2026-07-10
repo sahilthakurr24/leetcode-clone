@@ -1,5 +1,10 @@
 import { db, eq, and, or, asc, inArray, ilike, isNull, sql, count } from "@repo/database";
 import {
+  generateStarterCode,
+  isSupportedLanguage,
+  type ProblemSignature,
+} from "@repo/judge0";
+import {
   problemsTable,
   problemParamsTable,
   problemHintsTable,
@@ -327,18 +332,44 @@ class ProblemService {
       .where(eq(problemHintsTable.problemId, problem.id))
       .orderBy(asc(problemHintsTable.position));
 
-    const languages = await db
+    // Every active language with a generator is offered; a stored
+    // problem_languages row overrides the auto-generated starter skeleton.
+    const storedStarters = await db
       .select({
-        id: problemLanguagesTable.id,
+        languageId: problemLanguagesTable.languageId,
         starterCode: problemLanguagesTable.starterCode,
-        language: languagesTable,
       })
       .from(problemLanguagesTable)
-      .innerJoin(
-        languagesTable,
-        eq(problemLanguagesTable.languageId, languagesTable.id),
-      )
       .where(eq(problemLanguagesTable.problemId, problem.id));
+    const starterByLanguageId = new Map(
+      storedStarters.map((row) => [row.languageId, row.starterCode]),
+    );
+
+    const activeLanguages = await db
+      .select()
+      .from(languagesTable)
+      .where(eq(languagesTable.isActive, true))
+      .orderBy(asc(languagesTable.name));
+
+    const signature: ProblemSignature = {
+      functionName: problem.functionName,
+      returnType: problem.returnType,
+      parameters: params.map((param) => ({
+        name: param.name,
+        type: param.type,
+        elementType: param.type,
+      })),
+    };
+
+    const languages = activeLanguages
+      .filter((language) => isSupportedLanguage(language.slug))
+      .map((language) => ({
+        id: language.id,
+        starterCode:
+          starterByLanguageId.get(language.id) ??
+          generateStarterCode(language.slug, signature),
+        language,
+      }));
 
     return { problem, params, sampleTestCases, hints, languages };
   }
