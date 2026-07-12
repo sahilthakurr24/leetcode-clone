@@ -1,12 +1,12 @@
-import { db, eq, inArray } from "./index";
-import {
-  languagesTable,
-  topicsTable,
-  companiesTable,
-  problemsTable,
-  problemTopicsTable,
-  problemCompaniesTable,
-} from "./schema";
+import { db } from "./index";
+import { languagesTable } from "./schema";
+
+/**
+ * Seeds the Judge0 language catalogue (slug + judge0 language id + Monaco
+ * mapping). Everything else — problems, topics, companies — is created by
+ * admins through the frontend (problem.createProblem, topic.createTopic,
+ * company.createCompany).
+ */
 
 //languages configured from judge0
 
@@ -62,105 +62,9 @@ const languages = [
   { judge0Id: 68, name: "PHP (7.4.1)", version: "7.4.1", slug: "php", monacoLanguage: "php" },
 ];
 
-const topics = [
-  { name: "Array", slug: "array" },
-  { name: "String", slug: "string" },
-  { name: "Hash Table", slug: "hash-table" },
-  { name: "Dynamic Programming", slug: "dynamic-programming" },
-  { name: "Math", slug: "math" },
-  { name: "Sorting", slug: "sorting" },
-  { name: "Greedy", slug: "greedy" },
-  { name: "Depth-First Search", slug: "depth-first-search" },
-  { name: "Breadth-First Search", slug: "breadth-first-search" },
-  { name: "Tree", slug: "tree" },
-  { name: "Binary Search", slug: "binary-search" },
-  { name: "Linked List", slug: "linked-list" },
-];
-
-const companies = [
-  { name: "Google", slug: "google" },
-  { name: "Amazon", slug: "amazon" },
-  { name: "Meta", slug: "meta" },
-  { name: "Microsoft", slug: "microsoft" },
-  { name: "Apple", slug: "apple" },
-  { name: "Netflix", slug: "netflix" },
-  { name: "Uber", slug: "uber" },
-  { name: "Adobe", slug: "adobe" },
-];
-
-/** problem slug → topic slugs / company slugs to link (skipped if absent). */
-const problemTopicLinks: Record<string, string[]> = {
-  "two-sum": ["array", "hash-table"],
-  "reverse-linked-list": ["linked-list"],
-  "add-two-numbers": ["linked-list", "math"],
-};
-
-const problemCompanyLinks: Record<string, string[]> = {
-  "two-sum": ["google", "amazon", "meta", "microsoft"],
-  "reverse-linked-list": ["amazon", "apple"],
-  "add-two-numbers": ["amazon", "microsoft", "adobe"],
-};
-
-async function linkProblems() {
-  const problemSlugs = Object.keys({ ...problemTopicLinks, ...problemCompanyLinks });
-  const problems = await db
-    .select({ id: problemsTable.id, slug: problemsTable.slug })
-    .from(problemsTable)
-    .where(inArray(problemsTable.slug, problemSlugs));
-  const problemBySlug = new Map(problems.map((p) => [p.slug, p.id]));
-
-  const allTopics = await db
-    .select({ id: topicsTable.id, slug: topicsTable.slug })
-    .from(topicsTable);
-  const topicBySlug = new Map(allTopics.map((t) => [t.slug, t.id]));
-
-  const allCompanies = await db
-    .select({ id: companiesTable.id, slug: companiesTable.slug })
-    .from(companiesTable);
-  const companyBySlug = new Map(allCompanies.map((c) => [c.slug, c.id]));
-
-  const topicRows = Object.entries(problemTopicLinks).flatMap(([problemSlug, topicSlugs]) => {
-    const problemId = problemBySlug.get(problemSlug);
-    if (!problemId) return [];
-    return topicSlugs
-      .map((slug) => topicBySlug.get(slug))
-      .filter((id): id is string => !!id)
-      .map((topicId) => ({ problemId, topicId }));
-  });
-
-  const companyRows = Object.entries(problemCompanyLinks).flatMap(
-    ([problemSlug, companySlugs]) => {
-      const problemId = problemBySlug.get(problemSlug);
-      if (!problemId) return [];
-      return companySlugs
-        .map((slug) => companyBySlug.get(slug))
-        .filter((id): id is string => !!id)
-        .map((companyId) => ({ problemId, companyId }));
-    },
-  );
-
-  if (topicRows.length > 0) {
-    await db.insert(problemTopicsTable).values(topicRows).onConflictDoNothing();
-  }
-  if (companyRows.length > 0) {
-    await db.insert(problemCompaniesTable).values(companyRows).onConflictDoNothing();
-  }
-
-  return { topicLinks: topicRows.length, companyLinks: companyRows.length };
-}
-
 async function seed() {
   await db.insert(languagesTable).values(languages).onConflictDoNothing();
   console.log(`Seeded ${languages.length} languages ✅`);
-
-  await db.insert(topicsTable).values(topics).onConflictDoNothing();
-  console.log(`Seeded ${topics.length} topics ✅`);
-
-  await db.insert(companiesTable).values(companies).onConflictDoNothing();
-  console.log(`Seeded ${companies.length} companies ✅`);
-
-  const { topicLinks, companyLinks } = await linkProblems();
-  console.log(`Linked ${topicLinks} problem-topics, ${companyLinks} problem-companies ✅`);
 
   process.exit(0);
 }

@@ -85,6 +85,15 @@ export const createProblemInputSchema = z.object({
 
   hints: z.array(z.string().min(1)).default([]),
 
+  topicIds: z
+    .array(z.string().uuid())
+    .default([])
+    .describe("Ids of topics to tag the problem with"),
+  companyIds: z
+    .array(z.string().uuid())
+    .default([])
+    .describe("Ids of companies to tag the problem with"),
+
   starterCodes: z
     .array(
       z.object({

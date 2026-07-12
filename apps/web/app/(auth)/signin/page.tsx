@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import { authClient } from "~/lib/auth-client";
-import { LeetCodeLogo } from "~/components/leetcode-logo";
+import { LeetCloneLogo } from "~/components/leetclone-logo";
 import { SocialButtons } from "~/components/auth/social-buttons";
 import { Card, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
@@ -55,7 +55,9 @@ export default function SignInPage() {
       return;
     }
     toast.success("Signed in");
-    router.push("/");
+    // Return to the page that redirected here (proxy sets ?next=); same-origin paths only.
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.push(next?.startsWith("/") && !next.startsWith("//") ? next : "/");
     router.refresh();
   }
 
@@ -63,7 +65,7 @@ export default function SignInPage() {
     <Card className="w-full max-w-[400px] rounded-lg border-neutral-200 bg-white shadow-sm">
       <CardContent className="flex flex-col gap-6 px-8 py-9">
         <div className="flex justify-center">
-          <LeetCodeLogo />
+          <LeetCloneLogo />
         </div>
 
         <Form {...form}>

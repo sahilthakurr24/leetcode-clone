@@ -2,6 +2,7 @@ import { db, eq, and, or, asc, inArray, ilike, isNull, sql, count } from "@repo/
 import {
   generateStarterCode,
   isSupportedLanguage,
+  UnsupportedTypeError,
   type ProblemSignature,
 } from "@repo/judge0";
 import {
@@ -13,6 +14,8 @@ import {
   languagesTable,
   problemTopicsTable,
   topicsTable,
+  problemCompaniesTable,
+  companiesTable,
   userProblemStatusTable,
 } from "@repo/database/schema";
 import {
@@ -206,6 +209,27 @@ class ProblemService {
       }
     }
 
+    // Same up-front check for topic/company links: a bad id fails the whole
+    // request before anything is written.
+    if (input.topicIds.length > 0) {
+      const topics = await db
+        .select({ id: topicsTable.id })
+        .from(topicsTable)
+        .where(inArray(topicsTable.id, input.topicIds));
+      if (topics.length !== new Set(input.topicIds).size) {
+        throw new Error("One or more topics were not found");
+      }
+    }
+    if (input.companyIds.length > 0) {
+      const companies = await db
+        .select({ id: companiesTable.id })
+        .from(companiesTable)
+        .where(inArray(companiesTable.id, input.companyIds));
+      if (companies.length !== new Set(input.companyIds).size) {
+        throw new Error("One or more companies were not found");
+      }
+    }
+
     // Problem + params + test cases + hints + starter codes are one unit —
     // insert them atomically.
     const problem = await db.transaction(async (tx) => {
@@ -268,6 +292,24 @@ class ProblemService {
             languageId: languageBySlug.get(starter.languageSlug)!,
             starterCode: starter.starterCode,
             solutionCode: starter.solutionCode,
+          })),
+        );
+      }
+
+      if (input.topicIds.length > 0) {
+        await tx.insert(problemTopicsTable).values(
+          input.topicIds.map((topicId) => ({
+            problemId: created.id,
+            topicId,
+          })),
+        );
+      }
+
+      if (input.companyIds.length > 0) {
+        await tx.insert(problemCompaniesTable).values(
+          input.companyIds.map((companyId) => ({
+            problemId: created.id,
+            companyId,
           })),
         );
       }
@@ -363,15 +405,26 @@ class ProblemService {
       })),
     };
 
+    // Languages that cannot express this signature (UnsupportedTypeError,
+    // e.g. C with 2D or non-int arrays) are simply not offered.
     const languages = activeLanguages
       .filter((language) => isSupportedLanguage(language.slug))
-      .map((language) => ({
-        id: language.id,
-        starterCode:
-          starterByLanguageId.get(language.id) ??
-          generateStarterCode(language.slug, signature),
-        language,
-      }));
+      .flatMap((language) => {
+        try {
+          return [
+            {
+              id: language.id,
+              starterCode:
+                starterByLanguageId.get(language.id) ??
+                generateStarterCode(language.slug, signature),
+              language,
+            },
+          ];
+        } catch (error) {
+          if (error instanceof UnsupportedTypeError) return [];
+          throw error;
+        }
+      });
 
     return { problem, params, sampleTestCases, hints, languages };
   }

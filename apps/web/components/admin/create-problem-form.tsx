@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -9,6 +10,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { RouterInputs } from "@repo/trpc/client";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -36,7 +38,9 @@ import {
 } from "~/components/ui/select";
 import { Switch } from "~/components/ui/switch";
 import { Textarea } from "~/components/ui/textarea";
+import { useCompanies, useCreateCompany } from "~/hooks/api/company";
 import { useCreateProblem } from "~/hooks/api/problem";
+import { useCreateTopic, useTopics } from "~/hooks/api/topic";
 
 /** A required field holding one JSON value (e.g. `[2,7,11,15]`, `9`, `"abc"`). */
 const jsonValueSchema = z
@@ -111,6 +115,9 @@ const formSchema = z.object({
 
   hints: z.array(z.object({ value: z.string().trim().min(1, "Empty hint") })),
 
+  topicIds: z.array(z.string()),
+  companyIds: z.array(z.string()),
+
   timeLimitMs: optionalIntString(100, 20000),
   memoryLimitKb: optionalIntString(16000, 1024000),
   isPublished: z.boolean(),
@@ -132,9 +139,94 @@ function kebabCase(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Toggleable badge list with an inline "create new" row (topics/companies). */
+function TagPicker({
+  label,
+  items,
+  isLoading,
+  selectedIds,
+  onToggle,
+  onCreate,
+  isCreating,
+}: {
+  label: string;
+  items: { id: string; name: string }[] | undefined;
+  isLoading: boolean;
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  onCreate: (name: string) => Promise<void>;
+  isCreating: boolean;
+}) {
+  const [newName, setNewName] = useState("");
+
+  async function handleCreate() {
+    const name = newName.trim();
+    if (!name) return;
+    await onCreate(name);
+    setNewName("");
+  }
+
+  return (
+    <div className="space-y-2">
+      <FormLabel>{label}</FormLabel>
+      <div className="flex flex-wrap gap-1.5">
+        {isLoading && (
+          <span className="text-xs text-muted-foreground">Loading…</span>
+        )}
+        {items?.map((item) => {
+          const selected = selectedIds.includes(item.id);
+          return (
+            <Badge
+              key={item.id}
+              asChild
+              variant={selected ? "default" : "outline"}
+            >
+              <button type="button" onClick={() => onToggle(item.id)}>
+                {item.name}
+              </button>
+            </Badge>
+          );
+        })}
+        {items?.length === 0 && (
+          <span className="text-xs text-muted-foreground">
+            None yet — add one below.
+          </span>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={newName}
+          placeholder={`New ${label.toLowerCase().replace(/s$/, "")}…`}
+          className="h-8 text-xs"
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void handleCreate();
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={isCreating || !newName.trim()}
+          onClick={handleCreate}
+        >
+          <Plus className="size-4" /> Add
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function CreateProblemForm() {
   const router = useRouter();
   const createProblem = useCreateProblem();
+  const topicsQuery = useTopics();
+  const companiesQuery = useCompanies();
+  const createTopic = useCreateTopic();
+  const createCompany = useCreateCompany();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -150,6 +242,8 @@ export function CreateProblemForm() {
       params: [{ name: "", type: "int" }],
       testCases: [EMPTY_TEST_CASE],
       hints: [],
+      topicIds: [],
+      companyIds: [],
       timeLimitMs: "",
       memoryLimitKb: "",
       isPublished: true,
@@ -161,6 +255,49 @@ export function CreateProblemForm() {
   const hints = useFieldArray({ control: form.control, name: "hints" });
 
   const watchedParams = form.watch("params");
+  const selectedTopicIds = form.watch("topicIds");
+  const selectedCompanyIds = form.watch("companyIds");
+
+  function toggleId(field: "topicIds" | "companyIds", id: string) {
+    const current = form.getValues(field);
+    form.setValue(
+      field,
+      current.includes(id)
+        ? current.filter((value) => value !== id)
+        : [...current, id],
+    );
+  }
+
+  async function handleCreateTopic(name: string) {
+    try {
+      const { topic } = await createTopic.mutateAsync({
+        name,
+        slug: kebabCase(name),
+      });
+      form.setValue("topicIds", [...form.getValues("topicIds"), topic.id]);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create the topic.",
+      );
+    }
+  }
+
+  async function handleCreateCompany(name: string) {
+    try {
+      const { company } = await createCompany.mutateAsync({
+        name,
+        slug: kebabCase(name),
+      });
+      form.setValue("companyIds", [
+        ...form.getValues("companyIds"),
+        company.id,
+      ]);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create the company.",
+      );
+    }
+  }
 
   function handleTitleChange(title: string) {
     form.setValue("title", title);
@@ -190,6 +327,8 @@ export function CreateProblemForm() {
         explanation: testCase.explanation?.trim() ? testCase.explanation : undefined,
       })),
       hints: values.hints.map((hint) => hint.value),
+      topicIds: values.topicIds,
+      companyIds: values.companyIds,
       timeLimitMs: values.timeLimitMs ? Number(values.timeLimitMs) : undefined,
       memoryLimitKb: values.memoryLimitKb ? Number(values.memoryLimitKb) : undefined,
       isPublished: values.isPublished,
@@ -323,6 +462,26 @@ export function CreateProblemForm() {
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            <TagPicker
+              label="Topics"
+              items={topicsQuery.data?.topics}
+              isLoading={topicsQuery.isLoading}
+              selectedIds={selectedTopicIds}
+              onToggle={(id) => toggleId("topicIds", id)}
+              onCreate={handleCreateTopic}
+              isCreating={createTopic.isPending}
+            />
+
+            <TagPicker
+              label="Companies"
+              items={companiesQuery.data?.companies}
+              isLoading={companiesQuery.isLoading}
+              selectedIds={selectedCompanyIds}
+              onToggle={(id) => toggleId("companyIds", id)}
+              onCreate={handleCreateCompany}
+              isCreating={createCompany.isPending}
             />
           </CardContent>
         </Card>
