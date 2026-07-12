@@ -1,4 +1,4 @@
-import { db, eq, and, asc, desc, sql } from "@repo/database";
+import { db, eq, and, asc, desc, sql, gte, count } from "@repo/database";
 import {
   problemsTable,
   problemParamsTable,
@@ -7,6 +7,7 @@ import {
   submissionsTable,
   submissionResultsTable,
   userProblemStatusTable,
+  usersTable,
 } from "@repo/database/schema";
 import {
   getGenerator,
@@ -30,6 +31,10 @@ import {
   GetSubmissionByIdInputType,
   listUserSubmissionsInputSchema,
   ListUserSubmissionsInputType,
+  getUserSubmissionActivityInputSchema,
+  GetUserSubmissionActivityInputType,
+  listRecentAcceptedInputSchema,
+  ListRecentAcceptedInputType,
 } from "./model";
 
 class SubmissionService {
@@ -279,6 +284,75 @@ class SubmissionService {
       .where(eq(submissionResultsTable.submissionId, id));
 
     return { submission, results };
+  }
+
+  /** Resolve a username to a user id, throwing for unknown usernames. */
+  private async resolveUsername(username: string): Promise<string> {
+    const [user] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.username, username));
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return user.id;
+  }
+
+  /** Per-day submission counts for the past year (profile heatmap). */
+  public async getUserSubmissionActivity(payload: GetUserSubmissionActivityInputType) {
+    const { username } =
+      await getUserSubmissionActivityInputSchema.parseAsync(payload);
+    const userId = await this.resolveUsername(username);
+
+    const day = sql<string>`to_char(${submissionsTable.createdAt}, 'YYYY-MM-DD')`;
+    const activity = await db
+      .select({
+        date: day,
+        count: count(),
+      })
+      .from(submissionsTable)
+      .where(
+        and(
+          eq(submissionsTable.userId, userId),
+          gte(submissionsTable.createdAt, sql`now() - interval '1 year'`),
+        ),
+      )
+      .groupBy(day)
+      .orderBy(day);
+
+    const totalPastYear = activity.reduce((sum, row) => sum + row.count, 0);
+
+    return { activity, totalPastYear };
+  }
+
+  /** Latest accepted submissions for a public profile's activity list. */
+  public async listRecentAccepted(payload: ListRecentAcceptedInputType) {
+    const { username, limit } =
+      await listRecentAcceptedInputSchema.parseAsync(payload);
+    const userId = await this.resolveUsername(username);
+
+    const submissions = await db
+      .select({
+        id: submissionsTable.id,
+        createdAt: submissionsTable.createdAt,
+        language: languagesTable.name,
+        problemTitle: problemsTable.title,
+        problemSlug: problemsTable.slug,
+      })
+      .from(submissionsTable)
+      .innerJoin(languagesTable, eq(submissionsTable.languageId, languagesTable.id))
+      .innerJoin(problemsTable, eq(submissionsTable.problemId, problemsTable.id))
+      .where(
+        and(
+          eq(submissionsTable.userId, userId),
+          eq(submissionsTable.status, "accepted"),
+        ),
+      )
+      .orderBy(desc(submissionsTable.createdAt))
+      .limit(limit);
+
+    return { submissions };
   }
 
   public async listUserSubmissions(payload: ListUserSubmissionsInputType) {

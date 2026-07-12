@@ -85,11 +85,13 @@ export function Navbar() {
                   </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <User className="size-4" /> Profile
-                  </Link>
-                </DropdownMenuItem>
+                {user.username && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/u/${user.username}`}>
+                      <User className="size-4" /> Profile
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
                   <LogOut className="size-4" /> Sign out
                 </DropdownMenuItem>

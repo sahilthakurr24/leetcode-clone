@@ -9,6 +9,8 @@ import {
   isUsernameAvailableOutputSchema,
   getUserProfileInputSchema,
   getUserProfileOutputSchema,
+  getUserProfileByUsernameInputSchema,
+  getUserProfileByUsernameOutputSchema,
   updateMyProfileInputSchema,
   updateMyProfileOutputSchema,
   listUsersInputSchema,
@@ -46,6 +48,18 @@ export const authRouter = router({
     .input(getUserProfileInputSchema)
     .output(getUserProfileOutputSchema)
     .query(({ input }) => userService.getUserProfile(input)),
+
+  getUserProfileByUsername: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: getPath("profile/by-username/{username}"),
+        tags: TAGS,
+      },
+    })
+    .input(getUserProfileByUsernameInputSchema)
+    .output(getUserProfileByUsernameOutputSchema)
+    .query(({ input }) => userService.getUserProfileByUsername(input)),
 
   updateMyProfile: autheticatedProcedure
     .meta({ openapi: { method: "POST", path: getPath("update-profile"), tags: TAGS } })

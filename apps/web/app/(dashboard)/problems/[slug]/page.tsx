@@ -144,8 +144,12 @@ export default function ProblemWorkspacePage({
 
   return (
     <div className="h-[calc(100vh-6.5rem)] min-h-96">
-      <ResizablePanelGroup orientation="horizontal" className="rounded-lg border border-border">
-        <ResizablePanel defaultSize="45%" minSize="24%">
+      <ResizablePanelGroup orientation="horizontal">
+        <ResizablePanel
+          defaultSize="45%"
+          minSize="24%"
+          className="rounded-lg border border-border/50 bg-card"
+        >
           <Tabs defaultValue="description" className="h-full gap-0">
             <TabsList className="h-9 w-full justify-start rounded-none border-b border-border bg-transparent p-0 px-2">
               <TabsTrigger value="description" className="h-7 rounded-md px-3 text-xs">
@@ -164,11 +168,15 @@ export default function ProblemWorkspacePage({
           </Tabs>
         </ResizablePanel>
 
-        <ResizableHandle />
+        <ResizableHandle className="w-1.5 bg-transparent" />
 
         <ResizablePanel defaultSize="55%" minSize="30%">
           <ResizablePanelGroup orientation="vertical">
-            <ResizablePanel defaultSize="65%" minSize="20%">
+            <ResizablePanel
+              defaultSize="65%"
+              minSize="20%"
+              className="rounded-lg border border-border/50 bg-card"
+            >
               <CodeEditor
                 problemSlug={slug}
                 languages={languages}
@@ -181,8 +189,12 @@ export default function ProblemWorkspacePage({
                 isJudging={isJudging}
               />
             </ResizablePanel>
-            <ResizableHandle />
-            <ResizablePanel defaultSize="35%" minSize="15%">
+            <ResizableHandle className="h-1.5 bg-transparent" />
+            <ResizablePanel
+              defaultSize="35%"
+              minSize="15%"
+              className="rounded-lg border border-border/50 bg-card"
+            >
               <ConsolePanel
                 samples={samples}
                 params={detail.params}

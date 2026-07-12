@@ -12,6 +12,37 @@ export const getSubmissionByIdInputSchema = z.object({
   id: z.string().uuid().describe("Id of the submission"),
 });
 
+export const getUserActivityInputSchema = z.object({
+  username: z.string().min(1).describe("Username of the user"),
+});
+
+export const getUserActivityOutputSchema = z.object({
+  activity: z.array(
+    z.object({
+      date: z.string(),
+      count: z.number().int(),
+    }),
+  ),
+  totalPastYear: z.number().int(),
+});
+
+export const listRecentAcceptedInputSchema = z.object({
+  username: z.string().min(1).describe("Username of the user"),
+  limit: z.coerce.number().int().min(1).max(50).default(15),
+});
+
+export const listRecentAcceptedOutputSchema = z.object({
+  submissions: z.array(
+    z.object({
+      id: z.string().uuid(),
+      createdAt: z.date(),
+      language: z.string(),
+      problemTitle: z.string(),
+      problemSlug: z.string(),
+    }),
+  ),
+});
+
 export const listMySubmissionsInputSchema = z.object({
   problemId: z.string().uuid().optional().describe("Filter by problem"),
   limit: z.coerce.number().int().min(1).max(100).default(20),

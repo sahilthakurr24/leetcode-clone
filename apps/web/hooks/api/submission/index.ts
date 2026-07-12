@@ -37,3 +37,19 @@ export function useMySubmissions(
 ) {
   return trpc.submission.listMySubmissions.useQuery(input ?? {});
 }
+
+/** Per-day submission counts for the past year (profile heatmap). */
+export function useUserActivity(username: string | undefined) {
+  return trpc.submission.getUserActivity.useQuery(
+    { username: username! },
+    { enabled: !!username },
+  );
+}
+
+/** Latest accepted submissions for a public profile. */
+export function useRecentAccepted(username: string | undefined) {
+  return trpc.submission.listRecentAccepted.useQuery(
+    { username: username! },
+    { enabled: !!username },
+  );
+}

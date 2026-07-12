@@ -79,8 +79,35 @@ export const getUserProfileOutputSchema = z.object({
       hard: z.number().int(),
       total: z.number().int(),
     }),
+    totals: z.object({
+      easy: z.number().int(),
+      medium: z.number().int(),
+      hard: z.number().int(),
+      total: z.number().int(),
+    }),
     totalSubmissions: z.number().int(),
   }),
+});
+
+export const getUserProfileByUsernameInputSchema = z.object({
+  username: z.string().min(1).describe("Username of the user"),
+});
+
+export const getUserProfileByUsernameOutputSchema = getUserProfileOutputSchema.extend({
+  languages: z.array(
+    z.object({
+      name: z.string(),
+      slug: z.string(),
+      solved: z.number().int(),
+    }),
+  ),
+  topics: z.array(
+    z.object({
+      name: z.string(),
+      slug: z.string(),
+      solved: z.number().int(),
+    }),
+  ),
 });
 
 export const updateMyProfileOutputSchema = z.object({

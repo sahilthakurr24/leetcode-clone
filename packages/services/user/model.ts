@@ -47,6 +47,14 @@ export type UpdateUserProfileInputType = z.infer<
   typeof updateUserProfileInputSchema
 >;
 
+export const getUserProfileByUsernameInputSchema = z.object({
+  username: z.string().min(1).describe("Username of the user"),
+});
+
+export type GetUserProfileByUsernameInputType = z.infer<
+  typeof getUserProfileByUsernameInputSchema
+>;
+
 export const listUsersInputSchema = z.object({
   limit: z.number().int().min(1).max(100).default(50),
   offset: z.number().int().min(0).default(0),

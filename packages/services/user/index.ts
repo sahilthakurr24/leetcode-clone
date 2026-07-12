@@ -1,9 +1,12 @@
-import { db, eq, and, or, ilike, desc, count } from "@repo/database";
+import { db, eq, and, or, ilike, desc, count, countDistinct } from "@repo/database";
 import {
   usersTable,
   userProblemStatusTable,
   submissionsTable,
   problemsTable,
+  languagesTable,
+  problemTopicsTable,
+  topicsTable,
 } from "@repo/database/schema";
 import { env } from "../env";
 import { googleOAuth2Client } from "../clients/google-oauth";
@@ -19,6 +22,8 @@ import {
   UpdateUserProfileInputType,
   listUsersInputSchema,
   ListUsersInputType,
+  getUserProfileByUsernameInputSchema,
+  GetUserProfileByUsernameInputType,
   updateUserRoleInputSchema,
   UpdateUserRoleInputType,
 } from "./model";
@@ -111,6 +116,101 @@ class UserService {
     return { user };
   }
 
+  /** Solved/total stats + language/topic breakdowns shared by the profile endpoints. */
+  private async buildProfileStats(userId: string) {
+    const solvedByDifficulty = await db
+      .select({
+        difficulty: problemsTable.difficulty,
+        solved: count(),
+      })
+      .from(userProblemStatusTable)
+      .innerJoin(
+        problemsTable,
+        eq(userProblemStatusTable.problemId, problemsTable.id),
+      )
+      .where(
+        and(
+          eq(userProblemStatusTable.userId, userId),
+          eq(userProblemStatusTable.status, "solved"),
+        ),
+      )
+      .groupBy(problemsTable.difficulty);
+
+    const solved = { easy: 0, medium: 0, hard: 0, total: 0 };
+    for (const row of solvedByDifficulty) {
+      solved[row.difficulty] = row.solved;
+      solved.total += row.solved;
+    }
+
+    const publishedByDifficulty = await db
+      .select({
+        difficulty: problemsTable.difficulty,
+        total: count(),
+      })
+      .from(problemsTable)
+      .where(eq(problemsTable.isPublished, true))
+      .groupBy(problemsTable.difficulty);
+
+    const totals = { easy: 0, medium: 0, hard: 0, total: 0 };
+    for (const row of publishedByDifficulty) {
+      totals[row.difficulty] = row.total;
+      totals.total += row.total;
+    }
+
+    const [submissionStats] = await db
+      .select({ total: count() })
+      .from(submissionsTable)
+      .where(eq(submissionsTable.userId, userId));
+
+    const languages = await db
+      .select({
+        name: languagesTable.name,
+        slug: languagesTable.slug,
+        solved: countDistinct(submissionsTable.problemId),
+      })
+      .from(submissionsTable)
+      .innerJoin(languagesTable, eq(submissionsTable.languageId, languagesTable.id))
+      .where(
+        and(
+          eq(submissionsTable.userId, userId),
+          eq(submissionsTable.status, "accepted"),
+        ),
+      )
+      .groupBy(languagesTable.id, languagesTable.name, languagesTable.slug)
+      .orderBy(desc(countDistinct(submissionsTable.problemId)));
+
+    const topics = await db
+      .select({
+        name: topicsTable.name,
+        slug: topicsTable.slug,
+        solved: countDistinct(userProblemStatusTable.problemId),
+      })
+      .from(userProblemStatusTable)
+      .innerJoin(
+        problemTopicsTable,
+        eq(problemTopicsTable.problemId, userProblemStatusTable.problemId),
+      )
+      .innerJoin(topicsTable, eq(topicsTable.id, problemTopicsTable.topicId))
+      .where(
+        and(
+          eq(userProblemStatusTable.userId, userId),
+          eq(userProblemStatusTable.status, "solved"),
+        ),
+      )
+      .groupBy(topicsTable.id, topicsTable.name, topicsTable.slug)
+      .orderBy(desc(countDistinct(userProblemStatusTable.problemId)));
+
+    return {
+      stats: {
+        solved,
+        totals,
+        totalSubmissions: submissionStats?.total ?? 0,
+      },
+      languages,
+      topics,
+    };
+  }
+
   public async getUserProfile(payload: GetUserByIdInputType) {
     const { id } = await getUserByIdInputSchema.parseAsync(payload);
 
@@ -130,42 +230,34 @@ class UserService {
       throw new Error("User not found");
     }
 
-    const solvedByDifficulty = await db
-      .select({
-        difficulty: problemsTable.difficulty,
-        solved: count(),
-      })
-      .from(userProblemStatusTable)
-      .innerJoin(
-        problemsTable,
-        eq(userProblemStatusTable.problemId, problemsTable.id),
-      )
-      .where(
-        and(
-          eq(userProblemStatusTable.userId, id),
-          eq(userProblemStatusTable.status, "solved"),
-        ),
-      )
-      .groupBy(problemsTable.difficulty);
+    const { stats } = await this.buildProfileStats(id);
 
-    const solved = { easy: 0, medium: 0, hard: 0, total: 0 };
-    for (const row of solvedByDifficulty) {
-      solved[row.difficulty] = row.solved;
-      solved.total += row.solved;
+    return { user, stats };
+  }
+
+  public async getUserProfileByUsername(payload: GetUserProfileByUsernameInputType) {
+    const { username } =
+      await getUserProfileByUsernameInputSchema.parseAsync(payload);
+
+    const [user] = await db
+      .select({
+        id: usersTable.id,
+        fullName: usersTable.fullName,
+        username: usersTable.username,
+        profileImageUrl: usersTable.profileImageUrl,
+        role: usersTable.role,
+        createdAt: usersTable.createdAt,
+      })
+      .from(usersTable)
+      .where(eq(usersTable.username, username));
+
+    if (!user) {
+      throw new Error("User not found");
     }
 
-    const [submissionStats] = await db
-      .select({ total: count() })
-      .from(submissionsTable)
-      .where(eq(submissionsTable.userId, id));
+    const { stats, languages, topics } = await this.buildProfileStats(user.id);
 
-    return {
-      user,
-      stats: {
-        solved,
-        totalSubmissions: submissionStats?.total ?? 0,
-      },
-    };
+    return { user, stats, languages, topics };
   }
 
   public async listUsers(payload: ListUsersInputType) {

@@ -24,6 +24,14 @@ export function useUserProfile(id: string | undefined) {
   return trpc.auth.getUserProfile.useQuery({ id: id! }, { enabled: !!id });
 }
 
+/** Full public profile (stats + languages + topics) for /u/[username]. */
+export function useUserProfileByUsername(username: string | undefined) {
+  return trpc.auth.getUserProfileByUsername.useQuery(
+    { username: username! },
+    { enabled: !!username, retry: false },
+  );
+}
+
 export function useUpdateUser() {
   const utils = trpc.useUtils();
 

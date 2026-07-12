@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Search, Shuffle } from "lucide-react";
+import { Plus, Search, Shuffle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { useMe } from "~/hooks/api/auth";
 import {
   Select,
   SelectContent,
@@ -37,6 +39,8 @@ export function FilterBar({
   const router = useRouter();
   const utils = trpc.useUtils();
   const [picking, setPicking] = useState(false);
+  const { data: me } = useMe();
+  const isAdmin = me?.user.role === "admin";
 
   async function handlePickOne() {
     setPicking(true);
@@ -118,6 +122,14 @@ export function FilterBar({
       >
         <Shuffle className="size-4" /> Pick One
       </Button>
+
+      {isAdmin && (
+        <Button size="sm" variant="secondary" className="h-9 rounded-full" asChild>
+          <Link href="/admin/problems/new">
+            <Plus className="size-4" /> Create Problem
+          </Link>
+        </Button>
+      )}
 
       {total !== undefined && (
         <span className="ml-auto text-sm text-muted-foreground">{total} problems</span>

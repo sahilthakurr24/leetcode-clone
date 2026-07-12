@@ -92,11 +92,13 @@ const companies = [
 const problemTopicLinks: Record<string, string[]> = {
   "two-sum": ["array", "hash-table"],
   "reverse-linked-list": ["linked-list"],
+  "add-two-numbers": ["linked-list", "math"],
 };
 
 const problemCompanyLinks: Record<string, string[]> = {
   "two-sum": ["google", "amazon", "meta", "microsoft"],
   "reverse-linked-list": ["amazon", "apple"],
+  "add-two-numbers": ["amazon", "microsoft", "adobe"],
 };
 
 async function linkProblems() {

@@ -1,5 +1,5 @@
 import { submissionService } from "../../services";
-import { autheticatedProcedure, router } from "../../trpc";
+import { autheticatedProcedure, publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 import {
   submitInputSchema,
@@ -9,6 +9,10 @@ import {
   getSubmissionByIdOutputSchema,
   listMySubmissionsInputSchema,
   listMySubmissionsOutputSchema,
+  getUserActivityInputSchema,
+  getUserActivityOutputSchema,
+  listRecentAcceptedInputSchema,
+  listRecentAcceptedOutputSchema,
 } from "./model";
 
 const TAGS = ["Submission"];
@@ -38,6 +42,20 @@ export const submissionRouter = router({
     .query(({ ctx, input }) =>
       submissionService.getSubmissionById({ ...input, userId: ctx.userId }),
     ),
+
+  getUserActivity: publicProcedure
+    .meta({ openapi: { method: "GET", path: getPath("activity/{username}"), tags: TAGS } })
+    .input(getUserActivityInputSchema)
+    .output(getUserActivityOutputSchema)
+    .query(({ input }) => submissionService.getUserSubmissionActivity(input)),
+
+  listRecentAccepted: publicProcedure
+    .meta({
+      openapi: { method: "GET", path: getPath("recent-accepted/{username}"), tags: TAGS },
+    })
+    .input(listRecentAcceptedInputSchema)
+    .output(listRecentAcceptedOutputSchema)
+    .query(({ input }) => submissionService.listRecentAccepted(input)),
 
   listMySubmissions: autheticatedProcedure
     .meta({ openapi: { method: "GET", path: getPath("mine"), tags: TAGS } })

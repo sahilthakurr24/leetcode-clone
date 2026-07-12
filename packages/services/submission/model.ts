@@ -26,6 +26,23 @@ export type GetSubmissionByIdInputType = z.infer<
   typeof getSubmissionByIdInputSchema
 >;
 
+export const getUserSubmissionActivityInputSchema = z.object({
+  username: z.string().min(1).describe("Username of the user"),
+});
+
+export type GetUserSubmissionActivityInputType = z.infer<
+  typeof getUserSubmissionActivityInputSchema
+>;
+
+export const listRecentAcceptedInputSchema = z.object({
+  username: z.string().min(1).describe("Username of the user"),
+  limit: z.number().int().min(1).max(50).default(15),
+});
+
+export type ListRecentAcceptedInputType = z.infer<
+  typeof listRecentAcceptedInputSchema
+>;
+
 export const listUserSubmissionsInputSchema = z.object({
   userId: z.string().describe("Id of the user"),
   problemId: z.string().optional().describe("Filter by problem"),

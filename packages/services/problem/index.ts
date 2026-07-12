@@ -174,6 +174,8 @@ class ProblemService {
   public async createProblem(payload: CreateProblemInputType) {
     const input = await createProblemInputSchema.parseAsync(payload);
 
+
+
     const [duplicate] = await db
       .select({ id: problemsTable.id })
       .from(problemsTable)
