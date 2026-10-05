@@ -5,6 +5,24 @@ and get real execution results. Code runs on a **Judge0** instance hosted on a s
 Built as a **tRPC monorepo** (Turborepo + pnpm) with a type-safe path from the React frontend
 all the way to the database.
 
+## App screenshots
+
+### Landing Page
+
+![Landing page](apps/web/public/images/landing-page.png)
+
+### Problems Page
+
+![Problems page](apps/web/public/images/problems.png)
+
+### Solving Problem
+
+![Solving problem](apps/web/public/images/solving-problem.png)
+
+### Submission Result
+
+![Submission result](apps/web/public/images/submission.png)
+
 ## Architecture
 
 ```
